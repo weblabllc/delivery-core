@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 — 2026-10-04
+
+- `mayHaveCreatedWaybill(error)`: true for `timeout`, `aborted`, `network`, `parse` and any `http` error except status 400-499 (a 2xx with an unreadable body, a refused 3xx, a missing status or a 5xx all mean the request may have reached Nova Poshta); false for `validation`, `api` and `limit` (`limit` is only thrown by read-only directory pagination).
+- `fitRecipientName` trims and collapses spaces and drops the middle name when it is over 25 characters or the full name is over 50; last and first names are never truncated (`validation` error if they do not fit). Returns `middleNameDropped`. `createPrivateRecipient` applies it before the request.
+- `validateShipmentDescription` (1..120 characters after trim and whitespace collapsing, returns the normalized text), applied by `createWaybill` before any request.
+- Constants `NP_FIRST_NAME_MAX` (25), `NP_MIDDLE_NAME_MAX` (25), `NP_FULL_NAME_MAX` (50), `NP_DESCRIPTION_MAX` (120), measured against the live API.
+- Behaviour change: descriptions over 120 characters and names whose last and first parts exceed 50 characters together now fail locally with a `validation` error.
+
 ## 0.1.1 — 2026-10-04
 
 - Republished from CI with npm provenance. No code changes since 0.1.0.

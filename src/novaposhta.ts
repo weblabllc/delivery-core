@@ -30,6 +30,7 @@ import {
 export * from './money.js';
 export * from './novaposhta-client.js';
 export * from './novaposhta-directories.js';
+export * from './novaposhta-limits.js';
 export * from './novaposhta-phone.js';
 export * from './novaposhta-recipient.js';
 export * from './novaposhta-shipment.js';

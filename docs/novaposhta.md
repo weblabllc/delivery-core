@@ -38,6 +38,10 @@ Limits: CargoType Parcel|Documents only; Cost ≤ 29000; max 40×60×30 cm; ≤ 
 ### to warehouse "by string" (no recipient refs needed)
 Sender refs as above + RecipientsPhone*, NewAddress* ("1"), RecipientCityName*, RecipientArea*, RecipientAreaRegions*, RecipientAddressName* (warehouse number), RecipientName* (full name), RecipientType* (PrivatePerson|Organization), SettlementType* (SettlementTypeCode from searchSettlements, e.g. "м."), OwnershipForm, RecipientContactName, EDRPOU (orgs).
 
+Description limit observed live: <= 120 chars (120 accepted, 121 "Description too long"); the package enforces 1..120 after trim and whitespace collapsing (`validateShipmentDescription`, which returns the normalized text sent in the request).
+
+Orphan rule (`mayHaveCreatedWaybill`): after a failed `InternetDocumentGeneral.save` a waybill may exist for `timeout`, `aborted`, `network`, `parse` and `http` with any status except 400-499; `validation`, `api` and `limit` mean none was created.
+
 ## InternetDocumentGeneral.delete
 req: DocumentRefs* ; res: [{ Ref }]
 
@@ -61,6 +65,8 @@ StatusCode:
 
 ## CounterpartyGeneral.save (recipient, private person)
 req: FirstName*, MiddleName*, LastName*, Phone*, Email, CounterpartyType* (PrivatePerson), CounterpartyProperty* (Recipient). Ukrainian only.
+Limits observed live (2026-10-04, probes with an invalid phone so nothing was created): FirstName <= 25 chars ("FirstName too long" from 26), MiddleName <= 25 ("MiddleName too long" from 26), LastName has its own limit above 50 ("LastName too long" at 64). The binding constraint is the full name `${LastName} ${FirstName} ${MiddleName}` (single spaces) <= 50 chars: 16+16+16 (=50) accepted; 17+16+16, 30+15+4 and 36+10+4 rejected with "String too long". The docs' generic `string[36]` is wrong. Accepted counterparties cannot be deleted via API.
+Package rule: last name first, then first name, then middle name; the middle name is dropped when it is over 25 or the full name is over 50, last and first names are never truncated (`fitRecipientName`).
 res: [{ Ref, Description, FirstName, MiddleName, LastName, Counterparty, OwnershipForm, EDRPOU, CounterpartyType, ContactPerson: { data: [{ Ref, Description, ... }] } }]
 
 ## CounterpartyGeneral.getCounterparties

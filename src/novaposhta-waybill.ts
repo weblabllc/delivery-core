@@ -3,6 +3,7 @@ import { isRecord } from './guards.js';
 import { kopiykyToWholeUahCeil, uahToKopiyky } from './money.js';
 import { NovaPoshtaClient, NovaPoshtaError, RequestOptions } from './novaposhta-client.js';
 import { apiError, asRecord, parseError, requireStr, str, validationError } from './novaposhta-fields.js';
+import { fitRecipientName, RecipientNameInput, validateShipmentDescription } from './novaposhta-limits.js';
 import { normalizePhone } from './novaposhta-phone.js';
 import {
     assertCargoType,
@@ -36,10 +37,7 @@ const POINT_KINDS: readonly DeliveryPointKind[] = ['warehouse', 'postomat'];
 const INTERNET_DOCUMENT = 'InternetDocumentGeneral';
 const COUNTERPARTY = 'CounterpartyGeneral';
 
-export interface PrivateRecipientInput {
-    firstName: string;
-    middleName: string;
-    lastName: string;
+export interface PrivateRecipientInput extends RecipientNameInput {
     phone: string;
     email?: string;
 }
@@ -185,7 +183,7 @@ function assertGeneric(input: WaybillInput, now: Date): Checked {
     assertOneOf(input.paymentMethod, PAYMENT_METHODS, 'paymentMethod');
     assertServiceType(input.serviceType);
     assertCargoType(input.cargoType);
-    const description = requireText(input.description, 'description');
+    const description = validateShipmentDescription(input.description);
     const weightKg = gramsToKg(input.weightGrams);
     assertDeclaredValue(input.declaredValueMinor);
     const declared = kopiykyToWholeUahCeil(input.declaredValueMinor);
@@ -233,10 +231,11 @@ function assertPostomat(input: WaybillInput, weightKg: string): void {
 }
 
 export async function createPrivateRecipient(client: NovaPoshtaClient, input: PrivateRecipientInput, options: RequestOptions = {}): Promise<PrivateRecipient> {
+    const name = fitRecipientName(input);
     const properties: Record<string, unknown> = {
-        FirstName: requireText(input.firstName, 'firstName'),
-        MiddleName: typeof input.middleName === 'string' ? input.middleName.trim() : '',
-        LastName: requireText(input.lastName, 'lastName'),
+        FirstName: name.firstName,
+        MiddleName: name.middleName,
+        LastName: name.lastName,
         Phone: normalizePhone(input.phone),
         CounterpartyType: 'PrivatePerson',
         CounterpartyProperty: 'Recipient',

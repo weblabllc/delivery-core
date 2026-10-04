@@ -28,3 +28,12 @@ export class NovaPoshtaError extends Error {
         this.status = details.status;
     }
 }
+
+const NEVER_CREATED_KINDS: ReadonlySet<NovaPoshtaErrorKind> = new Set(['validation', 'api', 'limit']);
+
+export function mayHaveCreatedWaybill(error: unknown): boolean {
+    if (!(error instanceof NovaPoshtaError)) return false;
+    if (NEVER_CREATED_KINDS.has(error.kind)) return false;
+    if (error.kind !== 'http') return true;
+    return error.status === undefined || error.status < 400 || error.status > 499;
+}

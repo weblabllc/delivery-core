@@ -80,6 +80,18 @@ describe('createPrivateRecipient', () => {
         await expect(createPrivateRecipient(client, input, { signal: AbortSignal.abort() })).rejects.toMatchObject({ kind: 'aborted' });
     });
 
+    it('drops the middle name when the full name exceeds 50 characters', async () => {
+        const { client, calls } = clientFor({ body: npOk([{ Ref: 'a', ContactPerson: { data: [{ Ref: 'b' }] } }]) });
+        await createPrivateRecipient(client, { firstName: 'Т'.repeat(16), middleName: 'Т'.repeat(16), lastName: 'Т'.repeat(17), phone: '0671112233' });
+        expect(calls[0].body.methodProperties).toMatchObject({ FirstName: 'Т'.repeat(16), MiddleName: '', LastName: 'Т'.repeat(17) });
+    });
+
+    it('rejects an over-long first name before any request', async () => {
+        const { client, calls } = clientFor({ body: npOk([]) });
+        await expect(createPrivateRecipient(client, { firstName: 'Т'.repeat(26), middleName: '', lastName: 'Ли', phone: '0671112233' })).rejects.toMatchObject({ kind: 'validation' });
+        expect(calls).toHaveLength(0);
+    });
+
     it('omits email when absent', async () => {
         const { client, calls } = clientFor({ body: npOk([{ Ref: 'a', ContactPerson: { data: [{ Ref: 'b' }] } }]) });
         await createPrivateRecipient(client, { firstName: 'A', middleName: 'B', lastName: 'C', phone: '0671112233' });
@@ -108,6 +120,12 @@ describe('createPrivateRecipient', () => {
 });
 
 describe('createWaybill', () => {
+    it('sends the normalized description', async () => {
+        const { client, calls } = clientFor({ body: npOk([{ Ref: 'r', IntDocNumber: '20400000000000' }]) });
+        await createWaybill(client, input({ description: '  Книги   для  школи ' }));
+        expect(calls[0].body.methodProperties).toMatchObject({ Description: 'Книги для школи' });
+    });
+
     it('sends a warehouse to warehouse document', async () => {
         const { client, calls } = clientFor({ body: npOk([saved]) });
         const result = await create(client, input());
@@ -271,6 +289,7 @@ describe('createWaybill', () => {
         ['weight zero', { weightGrams: 0 }],
         ['seats zero', { seatsAmount: 0 }],
         ['empty description', { description: '  ' }],
+        ['description over 120', { description: 'К'.repeat(121) }],
         ['negative declared value', { declaredValueMinor: -1 }],
         ['zero declared value', { declaredValueMinor: 0 }],
         ['fractional declared value', { declaredValueMinor: 100.5 }],

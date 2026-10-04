@@ -3,7 +3,7 @@ import { MAX_RESPONSE_BYTES, parseJson, postJson, PostJsonResult, REQUEST_TIMEOU
 import { NovaPoshtaError, NovaPoshtaErrorDetails, NovaPoshtaErrorKind } from './novaposhta-error.js';
 import { validationError } from './novaposhta-fields.js';
 
-export { NovaPoshtaError } from './novaposhta-error.js';
+export { mayHaveCreatedWaybill, NovaPoshtaError } from './novaposhta-error.js';
 export type { NovaPoshtaErrorDetails, NovaPoshtaErrorKind } from './novaposhta-error.js';
 
 export const NOVAPOSHTA_BASE_URL = 'https://api.novaposhta.ua/v2.0/json/';

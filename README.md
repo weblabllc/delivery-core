@@ -121,6 +121,16 @@ await np.deleteWaybill(waybill.ref)
 
 Validation runs before any request, in this order: generic fields, seats and options, postomat rules. Phone normalized to `380XXXXXXXXX`, weight at least 0.1 kg, `Documents` weight only 0.1 / 0.5 / 1 kg. With `pointKind: 'postomat'`: cargo `Parcel` or `Documents`, exactly one seat with `optionsSeat`, width <= 40, length <= 60, height <= 30 cm, <= 20 kg, declared value <= 29000 UAH.
 
+### Limits and failures
+
+```ts
+const fitted = fitRecipientName({ lastName: 'Петренко', firstName: 'Іван', middleName: 'Іванович' })
+validateShipmentDescription('Книги')
+try { await np.createWaybill(input) } catch (error) { if (mayHaveCreatedWaybill(error)) { /* look the waybill up before retrying */ } }
+```
+
+Nova Poshta limits, measured live: first and middle name up to 25 characters, full name `last first middle` up to 50 characters, description up to 120. `fitRecipientName` never truncates the last or first name (a `validation` error if they do not fit) and drops the middle name when it does not fit, reporting `middleNameDropped`; `createPrivateRecipient` applies it. `createWaybill` validates the description (1..120 after trim and whitespace collapsing). `mayHaveCreatedWaybill(error)` is true for `timeout`, `aborted`, `network`, `parse` and any `http` error except status 400-499, when the waybill may exist despite the failure; `validation`, `api` and `limit` are false. Constants: `NP_FIRST_NAME_MAX`, `NP_MIDDLE_NAME_MAX`, `NP_FULL_NAME_MAX`, `NP_DESCRIPTION_MAX`.
+
 ### Tracking
 
 ```ts
