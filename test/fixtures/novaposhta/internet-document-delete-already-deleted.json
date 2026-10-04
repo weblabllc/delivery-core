@@ -1,0 +1,16 @@
+{
+  "success": false,
+  "data": [],
+  "errors": {
+    "0": "No document changed DeletionMark",
+    "01a10661-7b85-7ec0-8a5f-ca69851d4d0d": "Document already deleted 20451551873334"
+  },
+  "warnings": [],
+  "info": [],
+  "messageCodes": [],
+  "errorCodes": [
+    "20000201173"
+  ],
+  "warningCodes": [],
+  "infoCodes": []
+}

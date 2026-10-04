@@ -1,0 +1,44 @@
+{
+  "success": true,
+  "data": [
+    {
+      "Ref": "33333333-3333-4333-8333-333333333333",
+      "Description": "Тестенко Тест Тестович",
+      "FirstName": "Тест",
+      "MiddleName": "Тестович",
+      "LastName": "Тестенко",
+      "Counterparty": "33333333-3333-4333-8333-333333333333",
+      "OwnershipForm": "",
+      "OwnershipFormDescription": "",
+      "EDRPOU": "00000000",
+      "CounterpartyType": "PrivatePerson",
+      "ContactPerson": {
+        "success": true,
+        "data": [
+          {
+            "Ref": "44444444-4444-4444-8444-444444444444",
+            "Description": "Тестенко Тест Тестович",
+            "LastName": "Тестенко",
+            "FirstName": "Тест",
+            "MiddleName": "Тестович"
+          }
+        ],
+        "errors": [],
+        "translatedErrors": [],
+        "warnings": [],
+        "info": [],
+        "messageCodes": [],
+        "errorCodes": [],
+        "warningCodes": [],
+        "infoCodes": []
+      }
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "info": [],
+  "messageCodes": [],
+  "errorCodes": [],
+  "warningCodes": [],
+  "infoCodes": []
+}

@@ -1,0 +1,29 @@
+{
+  "success": true,
+  "data": [
+    {
+      "Ref": "55555555-5555-4555-8555-555555555555",
+      "CostOnSite": 80,
+      "EstimatedDeliveryDate": "04.10.2026",
+      "IntDocNumber": "20450000000000",
+      "TypeDocument": "InternetDocument"
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    "RecipientType is set to PrivatePerson",
+    "VolumeWeight is changed",
+    "VolumeGeneral is changed",
+    "Weight is changed"
+  ],
+  "info": [],
+  "messageCodes": [],
+  "errorCodes": [],
+  "warningCodes": [
+    "30000200879",
+    "30000200888",
+    "30000200889",
+    "30000200881"
+  ],
+  "infoCodes": []
+}

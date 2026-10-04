@@ -1,0 +1,47 @@
+{
+  "success": false,
+  "data": [],
+  "errors": [
+    "CitySender is incorrect",
+    "SenderAddress not selected",
+    "CityRecipient not selected",
+    "RecipientAddress not selected",
+    "CargoType not selected",
+    "SeatsAmount empty",
+    "Sender not selected",
+    "ContactSender not selected",
+    "SendersPhone is empty",
+    "Recipient not selected",
+    "ContactRecipient not selected",
+    "ServiceType is empty",
+    "RecipientsPhone is empty",
+    "Payment method not selected",
+    "Description empty"
+  ],
+  "warnings": [
+    "DateTime is set to current"
+  ],
+  "info": [],
+  "messageCodes": [],
+  "errorCodes": [
+    "20000200105",
+    "20000200329",
+    "20000200104",
+    "20000200268",
+    "20000200099",
+    "20000200313",
+    "20000300442",
+    "20000300406",
+    "20000300445",
+    "20000300431",
+    "20000300401",
+    "20000200347",
+    "20000300435",
+    "20000200248",
+    "20000200150"
+  ],
+  "warningCodes": [
+    "30000200880"
+  ],
+  "infoCodes": []
+}

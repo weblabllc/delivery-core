@@ -1,0 +1,15 @@
+{
+  "success": false,
+  "data": [],
+  "errors": [
+    "No document changed DeletionMark"
+  ],
+  "warnings": [],
+  "info": [],
+  "messageCodes": [],
+  "errorCodes": [
+    "20000201173"
+  ],
+  "warningCodes": [],
+  "infoCodes": []
+}

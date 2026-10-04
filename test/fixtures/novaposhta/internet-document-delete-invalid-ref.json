@@ -1,0 +1,15 @@
+{
+  "success": false,
+  "data": [],
+  "errors": [
+    "There are only invalid DocumentBarcodes and/or DocumentRefs"
+  ],
+  "warnings": [],
+  "info": [],
+  "messageCodes": [],
+  "errorCodes": [
+    "20000200564"
+  ],
+  "warningCodes": [],
+  "infoCodes": []
+}

@@ -1,0 +1,23 @@
+{
+  "success": true,
+  "data": [
+    {
+      "Ref": "55555555-5555-4555-8555-555555555555",
+      "CostOnSite": 90,
+      "EstimatedDeliveryDate": "05.10.2026",
+      "IntDocNumber": "20450000000000",
+      "TypeDocument": "InternetDocument"
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    "CargoType is changed to Parcel"
+  ],
+  "info": [],
+  "messageCodes": [],
+  "errorCodes": [],
+  "warningCodes": [
+    "30000201469"
+  ],
+  "infoCodes": []
+}

@@ -1,0 +1,84 @@
+{
+  "name": "@weblabllc/delivery-core",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Framework-free delivery carrier abstractions: Nova Poshta client, directories, pricing, waybills and tracking",
+  "keywords": [
+    "delivery",
+    "shipping",
+    "novaposhta",
+    "nova-poshta",
+    "tracking",
+    "waybill",
+    "ukraine",
+    "typescript"
+  ],
+  "license": "MIT",
+  "author": "WebLab LLC <hello@weblab.llc>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/weblabllc/delivery-core.git"
+  },
+  "homepage": "https://github.com/weblabllc/delivery-core#readme",
+  "bugs": {
+    "url": "https://github.com/weblabllc/delivery-core/issues"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./delivery": {
+      "types": "./dist/delivery.d.ts",
+      "import": "./dist/delivery.js",
+      "default": "./dist/delivery.js"
+    },
+    "./registry": {
+      "types": "./dist/registry.d.ts",
+      "import": "./dist/registry.js",
+      "default": "./dist/registry.js"
+    },
+    "./novaposhta": {
+      "types": "./dist/novaposhta.d.ts",
+      "import": "./dist/novaposhta.js",
+      "default": "./dist/novaposhta.js"
+    },
+    "./novaposhta-status": {
+      "types": "./dist/novaposhta-status.d.ts",
+      "import": "./dist/novaposhta-status.js",
+      "default": "./dist/novaposhta-status.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22.12"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "prepare": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "build": "tsc",
+    "lint": "oxlint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@vitest/coverage-v8": "^4.1.11",
+    "oxlint": "^1.80.0",
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.0"
+  }
+}

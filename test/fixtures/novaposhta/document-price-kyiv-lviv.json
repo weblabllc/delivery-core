@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "data": [
+    {
+      "Cost": 90,
+      "AssessedCost": 500
+    }
+  ],
+  "errors": [],
+  "warnings": [
+    "DateTime is set to current",
+    "CargoType is changed to Parcel"
+  ],
+  "info": [],
+  "messageCodes": [],
+  "errorCodes": [],
+  "warningCodes": [
+    "30000200880",
+    "30000201469"
+  ],
+  "infoCodes": []
+}

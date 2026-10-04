@@ -1,0 +1,24 @@
+{
+  "success": true,
+  "data": [
+    {
+      "Description": "Тестенко Тест Тестович",
+      "Phones": "380501112233",
+      "Email": "test@example.com",
+      "Ref": "22222222-2222-4222-8222-222222222222",
+      "LastName": "Тестенко",
+      "FirstName": "Тест",
+      "MiddleName": "Тестович",
+      "MarketplacePartnerDescription": "Мобільний додаток"
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "info": {
+    "totalCount": 1
+  },
+  "messageCodes": [],
+  "errorCodes": [],
+  "warningCodes": [],
+  "infoCodes": []
+}

@@ -1,0 +1,30 @@
+{
+  "success": true,
+  "data": [
+    {
+      "Description": "Тестенко Тест Тестович",
+      "Ref": "11111111-1111-4111-8111-111111111111",
+      "City": "8d5a980d-391c-11dd-90d9-001a92567626",
+      "Counterparty": "11111111-1111-4111-8111-111111111111",
+      "FirstName": "Тест",
+      "LastName": "Тестенко",
+      "MiddleName": "Тестович",
+      "CounterpartyFullName": "",
+      "OwnershipFormRef": "",
+      "OwnershipFormDescription": "",
+      "EDRPOU": "00000000",
+      "CounterpartyType": "PrivatePerson",
+      "TrustedCounterpartyType": "",
+      "CityDescription": ""
+    }
+  ],
+  "errors": [],
+  "warnings": [],
+  "info": {
+    "totalCount": 1
+  },
+  "messageCodes": [],
+  "errorCodes": [],
+  "warningCodes": [],
+  "infoCodes": []
+}
