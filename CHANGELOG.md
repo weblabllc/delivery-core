@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 — 2026-10-04
+
+- Republished from CI with npm provenance. No code changes since 0.1.0.
+
 ## 0.1.0 — 2026-10-04
 
 Initial release.
