@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — 2026-10-04
+
+- `NovaPoshtaError` gains optional `field`, `code` (`NovaPoshtaValidationCode`) and `limit`, set on every `validation` error the package throws (limits, units, money, phone, waybill input, shipment builders, pricing input, directories paging and query, client options). English messages are unchanged.
+- New exports `NOVAPOSHTA_VALIDATION_CODES` and the `NovaPoshtaValidationCode` type: `required`, `too_long`, `too_short`, `too_small`, `too_large`, `invalid_type`, `invalid_format`, `not_integer`, `not_allowed`, `too_many`, `does_not_fit`, `mismatch`. `limit` is an own property only when meaningful: never for `required`, `invalid_type`, `invalid_format`, `not_integer`, `not_allowed`; the inclusive bound in the unit of the field for the rest (see the README table).
+- Optional trailing parameters for the field name: `normalizePhone(raw, field)`, `uahToKopiyky(value, field)`, `kopiykyToUah(minor, field)`, `kopiykyToWholeUahCeil(minor, field)`, `gramsToKg(grams, field)`, `assertSeatsAmount(value, field)`, `assertSeat(seat, path)`, `seatToApi(seat, path)`. Existing calls behave as before, but do not pass these helpers directly as `Array` callbacks (`forEach(assertSeat)`, `map(seatToApi)`): the index would be taken as the new parameter.
+- Waybill and pricing seat errors now name the seat (`optionsSeat[1].widthCm`).
+
 ## 0.2.0 — 2026-10-04
 
 - `mayHaveCreatedWaybill(error)`: true for `timeout`, `aborted`, `network`, `parse` and any `http` error except status 400-499 (a 2xx with an unreadable body, a refused 3xx, a missing status or a 5xx all mean the request may have reached Nova Poshta); false for `validation`, `api` and `limit` (`limit` is only thrown by read-only directory pagination).

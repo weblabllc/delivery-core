@@ -144,9 +144,40 @@ status.status // 'created' | 'in_transit' | 'arrived' | 'delivered' | 'refused' 
 import { mapNovaPoshtaStatus } from '@weblabllc/delivery-core/novaposhta-status'
 ```
 
+### Validation errors
+
+A `validation` error also carries `field`, `code` and `limit` (optional on the type, `field` and `code` always set by this package), so a consumer can localize the message instead of parsing the English text. `limit` is an own property only when it has a meaning; otherwise it is absent. The codes are listed in `NOVAPOSHTA_VALIDATION_CODES` and typed as `NovaPoshtaValidationCode`.
+
+`field` is the public input property (`firstName`, `description`, `phone`, `weightGrams`, `declaredValueMinor`, `seatsAmount`, `date`, `sender.phone`, `recipient.pointKind`, `optionsSeat[1].widthCm`, `lines[0].quantity`, `seats[1].heightCm`, `point.kind`, `page`, `limit`, `baseUrl`, `maxRetries`...). A few fields name something that is not a single input property: `fullName` (last plus first name together), `dimensions` (the three seat dimensions of a postomat `buildShipment`), `weightGrams` in a postomat check (total weight, as opposed to `optionsSeat[0].weightGrams`), `input` (the whole argument of `buildShipment` / `buildShipmentFromSeats`), `now` (the `now` option of `createWaybill`), `ref` (`deleteWaybill`), `number` (tracking) and `seats` in `buildShipment` (the `seats` count).
+
+| Code | Meaning | `limit` |
+| --- | --- | --- |
+| `required` | missing or blank (for a phone: an empty or whitespace-only string) | never |
+| `invalid_type` | wrong JS type, including NaN and Infinity where a number is expected, and a non-string phone | never |
+| `invalid_format` | cannot be parsed (a phone string that is not a Ukrainian number, UAH amount, `date`, `baseUrl`) | never |
+| `not_integer` | a whole number is required | never |
+| `not_allowed` | value outside the enum (`payerType`, `paymentMethod`, `serviceType`, `cargoType`, `recipient.pointKind`, `point.kind`, `Documents` weight, `baseUrl` host) | never |
+| `too_long` | text over the carrier limit | the maximum length in characters (inclusive): `firstName` 25, `fullName` 50, `description` 120 |
+| `too_short` | array with no entries (`lines`, `seats`, `optionsSeat`) | 1 |
+| `too_small` | number or date below the minimum | the minimum, inclusive, in the unit of the field (1 for whole cm, quantities and seat counts, 0 for minor units); for fields that accept fractions (`weightGrams` in `gramsToKg`, `volumeCm3`) the limit is 0 and the value must be strictly greater; absent for `date` in the past |
+| `too_large` | number or date above the maximum | the maximum, inclusive, in the unit of the field (`page` size 500, client options); for `date` the limit is 3 months; absent when the only bound is technical (`Number.MAX_SAFE_INTEGER`) |
+| `too_many` | count over a cap | the cap, inclusive: `lines` (units) 1000, `seats` 1000 |
+| `does_not_fit` | rejected by postomat limits | the limit in the unit of the field: `seats` / `seatsAmount` / `optionsSeat` 1, `optionsSeat[0].widthCm` 40, `lengthCm` 60, `heightCm` 30, `weightGrams` 20000 (grams), `declaredValueMinor` 2900000 (kopiyky); `dimensions` has none |
+| `mismatch` | two inputs disagree | the expected value: `optionsSeat` length against `seatsAmount` (`seatsAmount`), `seats` in `buildShipment` against the number of units (the units count) |
+
+`fitRecipientName` reports `lastName` or `firstName` with `required`, `firstName` with `too_long` (limit 25) and `fullName` with `too_long` (limit 50). `validateShipmentDescription` reports `description` with `required` or `too_long` (limit 120).
+
+```ts
+try { fitRecipientName(name) } catch (error) {
+    if (error instanceof NovaPoshtaError && error.kind === 'validation') {
+        const { field, code, limit } = error
+    }
+}
+```
+
 ### Errors
 
-Every failure is a `NovaPoshtaError` with `kind` (`'validation' | 'http' | 'network' | 'api' | 'timeout' | 'aborted' | 'parse' | 'limit'`), `errors`, `errorCodes`, `warnings`, `modelName` and `calledMethod`. Input validation throws `kind: 'validation'`. The API key never appears in an error, and error text is truncated to 2000 characters.
+Every failure is a `NovaPoshtaError` with `kind` (`'validation' | 'http' | 'network' | 'api' | 'timeout' | 'aborted' | 'parse' | 'limit'`), `errors`, `errorCodes`, `warnings`, `modelName` and `calledMethod`. Input validation throws `kind: 'validation'` (see Validation errors above for `field`, `code` and `limit`). The API key never appears in an error, and error text is truncated to 2000 characters.
 
 Client options:
 

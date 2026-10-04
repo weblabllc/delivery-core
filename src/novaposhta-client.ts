@@ -1,10 +1,10 @@
 import { isRecord } from './guards.js';
 import { MAX_RESPONSE_BYTES, parseJson, postJson, PostJsonResult, REQUEST_TIMEOUT_MS, TransportError } from './http.js';
 import { NovaPoshtaError, NovaPoshtaErrorDetails, NovaPoshtaErrorKind } from './novaposhta-error.js';
-import { validationError } from './novaposhta-fields.js';
+import { checkInteger, validationError } from './novaposhta-fields.js';
 
-export { mayHaveCreatedWaybill, NovaPoshtaError } from './novaposhta-error.js';
-export type { NovaPoshtaErrorDetails, NovaPoshtaErrorKind } from './novaposhta-error.js';
+export { mayHaveCreatedWaybill, NOVAPOSHTA_VALIDATION_CODES, NovaPoshtaError } from './novaposhta-error.js';
+export type { NovaPoshtaErrorDetails, NovaPoshtaErrorKind, NovaPoshtaValidationCode } from './novaposhta-error.js';
 
 export const NOVAPOSHTA_BASE_URL = 'https://api.novaposhta.ua/v2.0/json/';
 
@@ -45,9 +45,7 @@ export interface NovaPoshtaResponse {
 }
 
 function assertIntegerOption(name: string, value: number, min: number, max: number): void {
-    if (!Number.isInteger(value) || value < min || value > max) {
-        throw validationError(`Invalid ${name}: ${String(value)} (expected integer ${min}..${max})`);
-    }
+    checkInteger(value, name, min, max, `Invalid ${name}: ${String(value)} (expected integer ${min}..${max})`);
 }
 
 function parseBaseUrl(baseUrl: string): { url: URL; local: boolean } {
@@ -55,12 +53,12 @@ function parseBaseUrl(baseUrl: string): { url: URL; local: boolean } {
     try {
         url = new URL(baseUrl);
     } catch {
-        throw validationError('Invalid baseUrl: not a url');
+        throw validationError('Invalid baseUrl: not a url', 'baseUrl', 'invalid_format');
     }
     const secure = url.protocol === 'https:' && url.host === API_HOST;
     const local = url.protocol === 'http:' && LOCAL_HOSTNAMES.includes(url.hostname);
     if (url.username || url.password || (!secure && !local)) {
-        throw validationError(`Invalid baseUrl: only https://${API_HOST}/ is allowed`);
+        throw validationError(`Invalid baseUrl: only https://${API_HOST}/ is allowed`, 'baseUrl', 'not_allowed');
     }
     return { url, local };
 }
@@ -98,7 +96,7 @@ export class NovaPoshtaClient {
 
     constructor(options: NovaPoshtaClientOptions) {
         if (!options.apiKey) {
-            throw validationError('NovaPoshtaClient requires apiKey');
+            throw validationError('NovaPoshtaClient requires apiKey', 'apiKey', 'required');
         }
         const { url, local } = parseBaseUrl(options.baseUrl ?? NOVAPOSHTA_BASE_URL);
         this.maxRetries = options.maxRetries ?? 2;

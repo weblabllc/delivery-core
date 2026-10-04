@@ -24,13 +24,13 @@ export function fitRecipientName(name: RecipientNameInput): FittedRecipientName 
     const lastName = squeeze(name.lastName);
     const firstName = squeeze(name.firstName);
     const middleName = squeeze(name.middleName);
-    if (!lastName) throw validationError('lastName is required');
-    if (!firstName) throw validationError('firstName is required');
+    if (!lastName) throw validationError('lastName is required', 'lastName', 'required');
+    if (!firstName) throw validationError('firstName is required', 'firstName', 'required');
     if (size(firstName) > NP_FIRST_NAME_MAX) {
-        throw validationError(`firstName is longer than ${NP_FIRST_NAME_MAX} characters`);
+        throw validationError(`firstName is longer than ${NP_FIRST_NAME_MAX} characters`, 'firstName', 'too_long', NP_FIRST_NAME_MAX);
     }
     if (size(`${lastName} ${firstName}`) > NP_FULL_NAME_MAX) {
-        throw validationError(`lastName and firstName together are longer than ${NP_FULL_NAME_MAX} characters`);
+        throw validationError(`lastName and firstName together are longer than ${NP_FULL_NAME_MAX} characters`, 'fullName', 'too_long', NP_FULL_NAME_MAX);
     }
     if (middleName && (size(middleName) > NP_MIDDLE_NAME_MAX || size(`${lastName} ${firstName} ${middleName}`) > NP_FULL_NAME_MAX)) {
         return { lastName, firstName, middleName: '', middleNameDropped: true };
@@ -41,10 +41,10 @@ export function fitRecipientName(name: RecipientNameInput): FittedRecipientName 
 export function validateShipmentDescription(description: unknown): string {
     const text = squeeze(description);
     if (!text) {
-        throw validationError('description is required');
+        throw validationError('description is required', 'description', 'required');
     }
     if (size(text) > NP_DESCRIPTION_MAX) {
-        throw validationError(`description is longer than ${NP_DESCRIPTION_MAX} characters`);
+        throw validationError(`description is longer than ${NP_DESCRIPTION_MAX} characters`, 'description', 'too_long', NP_DESCRIPTION_MAX);
     }
     return text;
 }

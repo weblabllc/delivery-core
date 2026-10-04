@@ -64,12 +64,12 @@ export async function getDocumentPrice(client: NovaPoshtaClient, input: Document
         CityRecipient: input.cityRecipient,
         Weight: gramsToKg(input.weightGrams),
         ServiceType: input.serviceType,
-        Cost: kopiykyToWholeUahCeil(input.declaredValueMinor),
+        Cost: kopiykyToWholeUahCeil(input.declaredValueMinor, 'declaredValueMinor'),
         CargoType: input.cargoType,
         SeatsAmount: String(input.seatsAmount),
     };
     if (input.optionsSeat) {
-        properties.OptionsSeat = input.optionsSeat.map((seat): ApiSeat => seatToApi(seat));
+        properties.OptionsSeat = input.optionsSeat.map((seat, index): ApiSeat => seatToApi(seat, `optionsSeat[${index}]`));
     }
     const response = await client.call(MODEL, METHOD, properties, { mode: 'read', signal: options.signal });
     if (response.data.length === 0) {

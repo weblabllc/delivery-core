@@ -1,6 +1,6 @@
 {
   "name": "@weblabllc/delivery-core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Framework-free delivery carrier abstractions: Nova Poshta client, directories, pricing, waybills and tracking",
   "keywords": [

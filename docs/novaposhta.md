@@ -42,6 +42,8 @@ Description limit observed live: <= 120 chars (120 accepted, 121 "Description to
 
 Orphan rule (`mayHaveCreatedWaybill`): after a failed `InternetDocumentGeneral.save` a waybill may exist for `timeout`, `aborted`, `network`, `parse` and `http` with any status except 400-499; `validation`, `api` and `limit` mean none was created.
 
+Validation errors carry `field`, `code` and `limit` for localization; see the README section "Validation errors".
+
 ## InternetDocumentGeneral.delete
 req: DocumentRefs* ; res: [{ Ref }]
 

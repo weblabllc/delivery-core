@@ -1,8 +1,43 @@
 import { isRecord } from './guards.js';
-import { NovaPoshtaError } from './novaposhta-error.js';
+import { NovaPoshtaError, NovaPoshtaValidationCode } from './novaposhta-error.js';
 
-export function validationError(message: string): NovaPoshtaError {
-    return new NovaPoshtaError('validation', message, '', '');
+export function validationError(message: string, field: string, code: NovaPoshtaValidationCode, limit?: number): NovaPoshtaError {
+    return new NovaPoshtaError('validation', message, '', '', { field, code, limit });
+}
+
+const finiteBound = (bound: number): number | undefined => (Number.isFinite(bound) && Math.abs(bound) < Number.MAX_SAFE_INTEGER ? bound : undefined);
+
+export function checkInteger(value: unknown, field: string, min: number, max: number, message: string): asserts value is number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw validationError(message, field, 'invalid_type');
+    }
+    if (!Number.isInteger(value)) {
+        throw validationError(message, field, 'not_integer');
+    }
+    if (value < min) {
+        throw validationError(message, field, 'too_small', finiteBound(min));
+    }
+    if (value > max) {
+        throw validationError(message, field, 'too_large', finiteBound(max));
+    }
+}
+
+export function checkNonEmptyArray(value: unknown, field: string, message: string): asserts value is readonly unknown[] {
+    if (!Array.isArray(value)) {
+        throw validationError(message, field, 'invalid_type');
+    }
+    if (value.length === 0) {
+        throw validationError(message, field, 'too_short', 1);
+    }
+}
+
+export function checkPositive(value: unknown, field: string, message: string): asserts value is number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw validationError(message, field, 'invalid_type');
+    }
+    if (value <= 0) {
+        throw validationError(message, field, 'too_small', 0);
+    }
 }
 
 export function parseError(modelName: string, calledMethod: string, message: string): NovaPoshtaError {

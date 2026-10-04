@@ -1,6 +1,7 @@
 import type { DeliveryPointKind } from './delivery.js';
 import type { Warehouse } from './novaposhta-directories.js';
-import { validationError } from './novaposhta-fields.js';
+import type { NovaPoshtaValidationCode } from './novaposhta-error.js';
+import { checkInteger, checkNonEmptyArray, validationError } from './novaposhta-fields.js';
 import { assertSeatsAmount, gramsToKg, NovaPoshtaCargoType, NovaPoshtaServiceType, SeatInput } from './novaposhta-units.js';
 import {
     POSTOMAT_MAX_DECLARED_MINOR,
@@ -59,24 +60,14 @@ interface Unit {
 const POINT_KINDS: readonly DeliveryPointKind[] = ['warehouse', 'postomat'];
 const POSTOMAT_SORTED_LIMITS: readonly number[] = [POSTOMAT_MAX_HEIGHT_CM, POSTOMAT_MAX_WIDTH_CM, POSTOMAT_MAX_LENGTH_CM].sort((a, b) => a - b);
 
-function positiveNumber(value: unknown, name: string): number {
-    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
-        throw validationError(`Invalid ${name}: ${String(value)} (expected a positive number)`);
-    }
-    return value;
-}
-
 function positiveInteger(value: unknown, name: string): number {
-    const number = positiveNumber(value, name);
-    if (!Number.isSafeInteger(number)) {
-        throw validationError(`Invalid ${name}: ${String(value)} (expected a positive integer)`);
-    }
-    return number;
+    checkInteger(value, name, 1, Number.MAX_SAFE_INTEGER, `Invalid ${name}: ${String(value)} (expected a positive integer)`);
+    return value;
 }
 
 function recordOf(entry: unknown, label: string): Record<string, unknown> {
     if (typeof entry !== 'object' || entry === null) {
-        throw validationError(`Invalid ${label}: expected an object`);
+        throw validationError(`Invalid ${label}: expected an object`, label, 'invalid_type');
     }
     return { ...entry };
 }
@@ -134,8 +125,8 @@ function orientForPostomat(seat: SeatInput): SeatInput {
     return { ...seat, widthCm: width, lengthCm: length, heightCm: height };
 }
 
-function postomatFail(reason: string): never {
-    throw validationError(`Postomat delivery rejected: ${reason}`);
+function postomatFail(reason: string, field: string, code: NovaPoshtaValidationCode, limit?: number): never {
+    throw validationError(`Postomat delivery rejected: ${reason}`, field, code, limit);
 }
 
 function totalUnits(lines: ShipmentLine[]): number {
@@ -143,7 +134,7 @@ function totalUnits(lines: ShipmentLine[]): number {
     for (const line of lines) {
         total += line.quantity;
         if (total > MAX_SHIPMENT_UNITS) {
-            throw validationError(`Too many units: at most ${MAX_SHIPMENT_UNITS} are allowed per shipment`);
+            throw validationError(`Too many units: at most ${MAX_SHIPMENT_UNITS} are allowed per shipment`, 'lines', 'too_many', MAX_SHIPMENT_UNITS);
         }
     }
     return total;
@@ -153,7 +144,7 @@ function pointKindOf(point: unknown): DeliveryPointKind {
     const kind = typeof point === 'object' && point !== null ? Object.entries(point).find(([key]) => key === 'kind')?.[1] : undefined;
     const found = POINT_KINDS.find(entry => entry === kind);
     if (!found) {
-        throw validationError(`Invalid point.kind: ${String(kind)}`);
+        throw validationError(`Invalid point.kind: ${String(kind)}`, 'point.kind', 'not_allowed');
     }
     return found;
 }
@@ -162,10 +153,10 @@ function finalize(seats: SeatInput[], declaredValueMinor: number, kind: Delivery
     let optionsSeat = seats;
     const weightGrams = optionsSeat.reduce((sum, seat) => sum + seat.weightGrams, 0);
     if (kind === 'postomat') {
-        if (optionsSeat.length !== 1) postomatFail('exactly one seat is allowed');
-        if (!dimensionsFit(optionsSeat[0], POSTOMAT_SORTED_LIMITS)) postomatFail(`seat exceeds ${POSTOMAT_MAX_WIDTH_CM}x${POSTOMAT_MAX_LENGTH_CM}x${POSTOMAT_MAX_HEIGHT_CM} cm`);
-        if (!weightFits(optionsSeat[0], POSTOMAT_MAX_WEIGHT_KG)) postomatFail(`weight exceeds ${POSTOMAT_MAX_WEIGHT_KG} kg`);
-        if (declaredValueMinor > POSTOMAT_MAX_DECLARED_MINOR) postomatFail('declared value exceeds 29000 UAH');
+        if (optionsSeat.length !== 1) postomatFail('exactly one seat is allowed', 'seats', 'does_not_fit', 1);
+        if (!dimensionsFit(optionsSeat[0], POSTOMAT_SORTED_LIMITS)) postomatFail(`seat exceeds ${POSTOMAT_MAX_WIDTH_CM}x${POSTOMAT_MAX_LENGTH_CM}x${POSTOMAT_MAX_HEIGHT_CM} cm`, 'dimensions', 'does_not_fit');
+        if (!weightFits(optionsSeat[0], POSTOMAT_MAX_WEIGHT_KG)) postomatFail(`weight exceeds ${POSTOMAT_MAX_WEIGHT_KG} kg`, 'weightGrams', 'does_not_fit', POSTOMAT_MAX_WEIGHT_KG * 1000);
+        if (declaredValueMinor > POSTOMAT_MAX_DECLARED_MINOR) postomatFail('declared value exceeds 29000 UAH', 'declaredValueMinor', 'does_not_fit', POSTOMAT_MAX_DECLARED_MINOR);
         optionsSeat = [orientForPostomat(optionsSeat[0])];
     }
     return { cargoType: 'Parcel', serviceType: 'WarehouseWarehouse', weightGrams, seatsAmount: optionsSeat.length, optionsSeat, declaredValueMinor };
@@ -173,32 +164,28 @@ function finalize(seats: SeatInput[], declaredValueMinor: number, kind: Delivery
 
 export function buildShipment(input: ShipmentInput): Shipment {
     if (typeof input !== 'object' || input === null) {
-        throw validationError('buildShipment requires an input object');
+        throw validationError('buildShipment requires an input object', 'input', 'invalid_type');
     }
-    if (!Array.isArray(input.lines) || input.lines.length === 0) {
-        throw validationError('lines must contain at least one entry');
-    }
+    checkNonEmptyArray(input.lines, 'lines', 'lines must contain at least one entry');
     const lines = input.lines.map(validateLine);
     const declaredValueMinor = positiveInteger(input.declaredValueMinor, 'declaredValueMinor');
     const kind = pointKindOf(input.point);
     const seats = input.seats ?? 1;
-    assertSeatsAmount(seats);
+    assertSeatsAmount(seats, 'seats');
     const total = totalUnits(lines);
     if (seats > total) {
-        throw validationError(`seats (${seats}) exceed the number of units (${total})`);
+        throw validationError(`seats (${seats}) exceed the number of units (${total})`, 'seats', 'mismatch', total);
     }
     return finalize(distribute(expand(lines), seats).map(seatOf), declaredValueMinor, kind);
 }
 
 export function buildShipmentFromSeats(input: ShipmentFromSeatsInput): Shipment {
     if (typeof input !== 'object' || input === null) {
-        throw validationError('buildShipmentFromSeats requires an input object');
+        throw validationError('buildShipmentFromSeats requires an input object', 'input', 'invalid_type');
     }
-    if (!Array.isArray(input.seats) || input.seats.length === 0) {
-        throw validationError('seats must contain at least one entry');
-    }
+    checkNonEmptyArray(input.seats, 'seats', 'seats must contain at least one entry');
     if (input.seats.length > MAX_SHIPMENT_UNITS) {
-        throw validationError(`Too many seats: at most ${MAX_SHIPMENT_UNITS} are allowed per shipment`);
+        throw validationError(`Too many seats: at most ${MAX_SHIPMENT_UNITS} are allowed per shipment`, 'seats', 'too_many', MAX_SHIPMENT_UNITS);
     }
     const seats = input.seats.map((entry, index) => validateSeatFields(recordOf(entry, `seats[${index}]`), `seats[${index}]`));
     const declaredValueMinor = positiveInteger(input.declaredValueMinor, 'declaredValueMinor');

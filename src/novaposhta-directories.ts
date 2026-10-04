@@ -2,7 +2,7 @@ import type { DeliveryPointKind } from './delivery.js';
 import { isRecord } from './guards.js';
 import { NovaPoshtaClient, NovaPoshtaResponse, RequestOptions } from './novaposhta-client.js';
 import { NovaPoshtaError } from './novaposhta-error.js';
-import { asRecord, flag, num, optStr, requireStr, str, validationError } from './novaposhta-fields.js';
+import { asRecord, checkInteger, flag, num, optStr, requireStr, str, validationError } from './novaposhta-fields.js';
 
 const MODEL = 'AddressGeneral';
 const COUNTERPARTY_MODEL = 'CounterpartyGeneral';
@@ -79,9 +79,7 @@ export interface ContactPerson {
 }
 
 function assertInteger(value: number, name: string, min: number, max: number): void {
-    if (!Number.isInteger(value) || value < min || value > max) {
-        throw validationError(`Invalid ${name}: ${value} (expected integer ${min}..${max})`);
-    }
+    checkInteger(value, name, min, max, `Invalid ${name}: ${value} (expected integer ${min}..${max})`);
 }
 
 function paging(options: PageOptions, defaults: { page: number; limit: number }): { Page: string; Limit: string } {
@@ -140,7 +138,7 @@ async function fetchAllPages(
 
 export async function searchSettlements(client: NovaPoshtaClient, query: string, options: PageOptions = {}): Promise<Settlement[]> {
     if (typeof query !== 'string') {
-        throw validationError('query must be a string');
+        throw validationError('query must be a string', 'query', 'invalid_type');
     }
     const cityName = query.trim();
     if (!cityName) {
@@ -237,7 +235,7 @@ export async function getSenderCounterparties(client: NovaPoshtaClient, options:
 
 export async function getContactPersons(client: NovaPoshtaClient, counterpartyRef: string, options: RequestOptions = {}): Promise<ContactPerson[]> {
     if (!counterpartyRef) {
-        throw validationError('counterpartyRef is required');
+        throw validationError('counterpartyRef is required', 'counterpartyRef', 'required');
     }
     const method = 'getCounterpartyContactPersons';
     const all = await fetchAllPages(client, COUNTERPARTY_MODEL, method, { Ref: counterpartyRef }, null, options.signal);

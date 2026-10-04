@@ -9,10 +9,12 @@ export function tryNormalizePhone(raw: unknown): string | null {
     return null;
 }
 
-export function normalizePhone(raw: string): string {
+export function normalizePhone(raw: string, field = 'phone'): string {
     const normalized = tryNormalizePhone(raw);
     if (normalized === null) {
-        throw validationError('Invalid phone number: expected a Ukrainian number (380XXXXXXXXX)');
+        const message = 'Invalid phone number: expected a Ukrainian number (380XXXXXXXXX)';
+        if (typeof raw !== 'string') throw validationError(message, field, 'invalid_type');
+        throw validationError(message, field, raw.trim() === '' ? 'required' : 'invalid_format');
     }
     return normalized;
 }

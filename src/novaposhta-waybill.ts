@@ -2,7 +2,8 @@ import type { DeliveryPointKind } from './delivery.js';
 import { isRecord } from './guards.js';
 import { kopiykyToWholeUahCeil, uahToKopiyky } from './money.js';
 import { NovaPoshtaClient, NovaPoshtaError, RequestOptions } from './novaposhta-client.js';
-import { apiError, asRecord, parseError, requireStr, str, validationError } from './novaposhta-fields.js';
+import type { NovaPoshtaValidationCode } from './novaposhta-error.js';
+import { apiError, asRecord, checkInteger, checkNonEmptyArray, checkPositive, parseError, requireStr, str, validationError } from './novaposhta-fields.js';
 import { fitRecipientName, RecipientNameInput, validateShipmentDescription } from './novaposhta-limits.js';
 import { normalizePhone } from './novaposhta-phone.js';
 import {
@@ -120,41 +121,43 @@ export function formatNovaPoshtaDate(date: Date): string {
 function requireText(value: unknown, name: string): string {
     const text = typeof value === 'string' ? value.trim() : '';
     if (!text) {
-        throw validationError(`${name} is required`);
+        throw validationError(`${name} is required`, name, 'required');
     }
     return text;
 }
 
 function assertOneOf(value: unknown, allowed: readonly string[], name: string): void {
     if (typeof value !== 'string' || !allowed.includes(value)) {
-        throw validationError(`Invalid ${name}: ${String(value)}`);
+        throw validationError(`Invalid ${name}: ${String(value)}`, name, 'not_allowed');
     }
 }
 
-function assertValidDate(value: unknown, name: string): asserts value is Date {
+function assertValidDate(value: unknown, name: string, field = name): asserts value is Date {
     if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
-        throw validationError(`Invalid ${name}: expected a valid date`);
+        throw validationError(`Invalid ${name}: expected a valid date`, field, 'invalid_format');
     }
 }
 
 function assertDeclaredValue(minor: number): void {
-    if (!Number.isSafeInteger(minor) || minor <= 0) {
-        throw validationError(`Invalid declaredValueMinor: ${String(minor)} (expected a positive integer)`);
-    }
+    checkInteger(minor, 'declaredValueMinor', 1, Number.MAX_SAFE_INTEGER, `Invalid declaredValueMinor: ${String(minor)} (expected a positive integer)`);
 }
 
 function assertVolume(cm3: number | undefined): void {
-    if (cm3 !== undefined && (typeof cm3 !== 'number' || !Number.isFinite(cm3) || cm3 <= 0)) {
-        throw validationError(`Invalid volumeCm3: ${String(cm3)}`);
+    if (cm3 !== undefined) {
+        checkPositive(cm3, 'volumeCm3', `Invalid volumeCm3: ${String(cm3)}`);
     }
 }
 
 function assertWaybillDate(date: Date, now: Date): void {
-    assertValidDate(date, 'waybill date');
+    assertValidDate(date, 'waybill date', 'date');
     const today = kyivDay(now);
     const day = dayKey(kyivDay(date));
-    if (day < dayKey(today) || day > dayKey(addMonths(today, WAYBILL_MAX_MONTHS_AHEAD))) {
-        throw validationError(`Invalid waybill date: must be from today to ${WAYBILL_MAX_MONTHS_AHEAD} months ahead (Kyiv time)`);
+    const message = `Invalid waybill date: must be from today to ${WAYBILL_MAX_MONTHS_AHEAD} months ahead (Kyiv time)`;
+    if (day < dayKey(today)) {
+        throw validationError(message, 'date', 'too_small');
+    }
+    if (day > dayKey(addMonths(today, WAYBILL_MAX_MONTHS_AHEAD))) {
+        throw validationError(message, 'date', 'too_large', WAYBILL_MAX_MONTHS_AHEAD);
     }
 }
 
@@ -162,7 +165,7 @@ function assertParty(party: WaybillParty, name: string): string {
     for (const key of ['cityRef', 'counterpartyRef', 'addressRef', 'contactRef'] as const) {
         requireText(party[key], `${name}.${key}`);
     }
-    return normalizePhone(party.phone);
+    return normalizePhone(party.phone, `${name}.phone`);
 }
 
 function volumeM3(cm3: number): number {
@@ -186,7 +189,7 @@ function assertGeneric(input: WaybillInput, now: Date): Checked {
     const description = validateShipmentDescription(input.description);
     const weightKg = gramsToKg(input.weightGrams);
     assertDeclaredValue(input.declaredValueMinor);
-    const declared = kopiykyToWholeUahCeil(input.declaredValueMinor);
+    const declared = kopiykyToWholeUahCeil(input.declaredValueMinor, 'declaredValueMinor');
     assertSeatsAmount(input.seatsAmount);
     const sendersPhone = assertParty(input.sender, 'sender');
     const recipientsPhone = assertParty(input.recipient, 'recipient');
@@ -199,35 +202,34 @@ function assertGeneric(input: WaybillInput, now: Date): Checked {
 
 function assertSeats(input: WaybillInput, weightKg: string): void {
     if (input.cargoType === 'Documents' && !DOCUMENTS_WEIGHTS_KG.some(allowed => allowed === weightKg)) {
-        throw validationError('Documents cargo weight must be 0.1, 0.5 or 1 kg');
+        throw validationError('Documents cargo weight must be 0.1, 0.5 or 1 kg', 'weightGrams', 'not_allowed');
     }
     if (!input.optionsSeat) {
         return;
     }
-    if (!Array.isArray(input.optionsSeat) || input.optionsSeat.length === 0) {
-        throw validationError('optionsSeat must contain at least one seat');
-    }
-    input.optionsSeat.forEach(assertSeat);
+    checkNonEmptyArray(input.optionsSeat, 'optionsSeat', 'optionsSeat must contain at least one seat');
+    input.optionsSeat.forEach((seat, index) => assertSeat(seat, `optionsSeat[${index}]`));
     if (input.optionsSeat.length !== input.seatsAmount) {
-        throw validationError('optionsSeat length must equal seatsAmount');
+        throw validationError('optionsSeat length must equal seatsAmount', 'optionsSeat', 'mismatch', input.seatsAmount);
     }
 }
 
-function postomatFail(reason: string): never {
-    throw validationError(`Postomat delivery rejected: ${reason}`);
+function postomatFail(reason: string, field: string, code: NovaPoshtaValidationCode, limit?: number): never {
+    throw validationError(`Postomat delivery rejected: ${reason}`, field, code, limit);
 }
 
 function assertPostomat(input: WaybillInput, weightKg: string): void {
-    if (input.cargoType !== 'Parcel' && input.cargoType !== 'Documents') postomatFail('cargoType must be Parcel or Documents');
-    if (input.seatsAmount !== 1) postomatFail('exactly one seat is allowed');
+    if (input.cargoType !== 'Parcel' && input.cargoType !== 'Documents') postomatFail('cargoType must be Parcel or Documents', 'cargoType', 'not_allowed');
+    if (input.seatsAmount !== 1) postomatFail('exactly one seat is allowed', 'seatsAmount', 'does_not_fit', 1);
     const seats = input.optionsSeat;
-    if (!seats || seats.length !== 1) postomatFail('optionsSeat with exactly one seat is required');
+    if (!seats || seats.length !== 1) postomatFail('optionsSeat with exactly one seat is required', 'optionsSeat', 'does_not_fit', 1);
     const [seat] = seats;
-    if (seat.widthCm > POSTOMAT_MAX_WIDTH_CM) postomatFail(`width exceeds ${POSTOMAT_MAX_WIDTH_CM} cm`);
-    if (seat.lengthCm > POSTOMAT_MAX_LENGTH_CM) postomatFail(`length exceeds ${POSTOMAT_MAX_LENGTH_CM} cm`);
-    if (seat.heightCm > POSTOMAT_MAX_HEIGHT_CM) postomatFail(`height exceeds ${POSTOMAT_MAX_HEIGHT_CM} cm`);
-    if (Number(weightKg) > POSTOMAT_MAX_WEIGHT_KG || Number(gramsToKg(seat.weightGrams)) > POSTOMAT_MAX_WEIGHT_KG) postomatFail(`weight exceeds ${POSTOMAT_MAX_WEIGHT_KG} kg`);
-    if (input.declaredValueMinor > POSTOMAT_MAX_DECLARED_MINOR) postomatFail('declared value exceeds 29000 UAH');
+    if (seat.widthCm > POSTOMAT_MAX_WIDTH_CM) postomatFail(`width exceeds ${POSTOMAT_MAX_WIDTH_CM} cm`, 'optionsSeat[0].widthCm', 'does_not_fit', POSTOMAT_MAX_WIDTH_CM);
+    if (seat.lengthCm > POSTOMAT_MAX_LENGTH_CM) postomatFail(`length exceeds ${POSTOMAT_MAX_LENGTH_CM} cm`, 'optionsSeat[0].lengthCm', 'does_not_fit', POSTOMAT_MAX_LENGTH_CM);
+    if (seat.heightCm > POSTOMAT_MAX_HEIGHT_CM) postomatFail(`height exceeds ${POSTOMAT_MAX_HEIGHT_CM} cm`, 'optionsSeat[0].heightCm', 'does_not_fit', POSTOMAT_MAX_HEIGHT_CM);
+    if (Number(weightKg) > POSTOMAT_MAX_WEIGHT_KG) postomatFail(`weight exceeds ${POSTOMAT_MAX_WEIGHT_KG} kg`, 'weightGrams', 'does_not_fit', POSTOMAT_MAX_WEIGHT_KG * 1000);
+    if (Number(gramsToKg(seat.weightGrams)) > POSTOMAT_MAX_WEIGHT_KG) postomatFail(`weight exceeds ${POSTOMAT_MAX_WEIGHT_KG} kg`, 'optionsSeat[0].weightGrams', 'does_not_fit', POSTOMAT_MAX_WEIGHT_KG * 1000);
+    if (input.declaredValueMinor > POSTOMAT_MAX_DECLARED_MINOR) postomatFail('declared value exceeds 29000 UAH', 'declaredValueMinor', 'does_not_fit', POSTOMAT_MAX_DECLARED_MINOR);
 }
 
 export async function createPrivateRecipient(client: NovaPoshtaClient, input: PrivateRecipientInput, options: RequestOptions = {}): Promise<PrivateRecipient> {
@@ -236,7 +238,7 @@ export async function createPrivateRecipient(client: NovaPoshtaClient, input: Pr
         FirstName: name.firstName,
         MiddleName: name.middleName,
         LastName: name.lastName,
-        Phone: normalizePhone(input.phone),
+        Phone: normalizePhone(input.phone, 'phone'),
         CounterpartyType: 'PrivatePerson',
         CounterpartyProperty: 'Recipient',
     };

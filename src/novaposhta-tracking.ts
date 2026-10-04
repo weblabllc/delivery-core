@@ -17,7 +17,7 @@ interface PreparedDocument {
 function prepare(request: TrackingRequest): PreparedDocument {
     const number = typeof request.number === 'string' ? request.number.trim() : '';
     if (!number) {
-        throw validationError('Tracking number is required');
+        throw validationError('Tracking number is required', 'number', 'required');
     }
     const phone = tryNormalizePhone(request.phone);
     return { number, payload: phone === null ? { DocumentNumber: number } : { DocumentNumber: number, Phone: phone } };

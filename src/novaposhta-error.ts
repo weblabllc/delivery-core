@@ -1,10 +1,30 @@
 export type NovaPoshtaErrorKind = 'http' | 'network' | 'api' | 'timeout' | 'aborted' | 'parse' | 'validation' | 'limit';
 
+export const NOVAPOSHTA_VALIDATION_CODES = [
+    'required',
+    'too_long',
+    'too_short',
+    'invalid_type',
+    'invalid_format',
+    'too_small',
+    'too_large',
+    'not_integer',
+    'not_allowed',
+    'too_many',
+    'does_not_fit',
+    'mismatch',
+] as const;
+
+export type NovaPoshtaValidationCode = (typeof NOVAPOSHTA_VALIDATION_CODES)[number];
+
 export interface NovaPoshtaErrorDetails {
     errors?: string[];
     errorCodes?: string[];
     warnings?: string[];
     status?: number;
+    field?: string;
+    code?: NovaPoshtaValidationCode;
+    limit?: number;
 }
 
 export class NovaPoshtaError extends Error {
@@ -12,6 +32,9 @@ export class NovaPoshtaError extends Error {
     readonly errorCodes: string[];
     readonly warnings: string[];
     readonly status: number | undefined;
+    declare readonly field?: string;
+    declare readonly code?: NovaPoshtaValidationCode;
+    declare readonly limit?: number;
 
     constructor(
         readonly kind: NovaPoshtaErrorKind,
@@ -26,6 +49,9 @@ export class NovaPoshtaError extends Error {
         this.errorCodes = details.errorCodes ?? [];
         this.warnings = details.warnings ?? [];
         this.status = details.status;
+        if (details.field !== undefined) this.field = details.field;
+        if (details.code !== undefined) this.code = details.code;
+        if (details.limit !== undefined) this.limit = details.limit;
     }
 }
 
